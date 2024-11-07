@@ -1,0 +1,55 @@
+import pandas as pd
+
+# Constants
+PROTON_MASS = 1.007276  # Mass of a proton in Da
+
+def calculate_mz(peptide_mass, charge):
+    """Calculate the m/z value for a peptide given its mass and charge state."""
+    return (peptide_mass + (charge * PROTON_MASS)) / charge
+
+def find_matches(data, peptide_masses, charges, tolerance=0.01):
+    """
+    Searches for m/z values in the data that match target m/z values
+    within a specified tolerance for given peptide masses and charges.
+    
+    Args:
+    - data (pd.DataFrame): Mass spectrometry data with columns 'm/z' and 'intensity'.
+    - peptide_masses (list of float): List of target peptide masses.
+    - charges (list of int): List of charge states to consider.
+    - tolerance (float): Allowed tolerance for m/z matching.
+    
+    Returns:
+    - matches (list of dict): List of matches with peptide mass, charge, target m/z, and found m/z.
+    """
+    matches = []
+    for peptide_mass in peptide_masses:
+        for charge in charges:
+            target_mz = calculate_mz(peptide_mass, charge)
+            # Find all rows where the m/z is within the tolerance of the target_mz
+            matching_rows = data[(data['m/z'] >= target_mz - tolerance) & (data['m/z'] <= target_mz + tolerance)]
+            for _, row in matching_rows.iterrows():
+                matches.append({
+                    'peptide_mass': peptide_mass,
+                    'charge': charge,
+                    'target_mz': target_mz,
+                    'found_mz': row['m/z'],
+                    'intensity': row['intensity']
+                })
+    return matches
+
+# Load the mass spectrometry data
+data = pd.read_csv('mass_spectrometry_data.csv')  # Replace with your file path
+
+# List of peptide masses and charge states to search for
+peptide_masses = [500.0, 1000.0, 1500.0]  # Example peptide masses in Daltons
+charges = [1, 2, 3]  # Example charge states
+
+# Define tolerance for matching m/z values
+tolerance = 0.01  # Example tolerance in Da
+
+# Find and display matches
+matches = find_matches(data, peptide_masses, charges, tolerance)
+for match in matches:
+    print(f"Peptide Mass: {match['peptide_mass']} Da, Charge: {match['charge']}, "
+          f"Target m/z: {match['target_mz']:.4f}, Found m/z: {match['found_mz']:.4f}, "
+          f"Intensity: {match['intensity']}")
